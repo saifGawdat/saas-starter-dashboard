@@ -9,11 +9,26 @@ interface RouteParams {
   params: Promise<{ id: string }>
 }
 
+// Helper to check permissions
+function hasPermission(session: { user?: { permissions?: string[] } }, permission: string) {
+  return session.user?.permissions?.includes(permission) ?? false
+}
+
+// Helper to check if user can access all media
+function canAccessAllMedia(session: { user?: { permissions?: string[] } }) {
+  return hasPermission(session, "media.delete_all")
+}
+
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth()
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Check permission
+    if (!hasPermission(session, "media.view")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const { id } = await params
@@ -28,6 +43,11 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     if (!media) {
       return NextResponse.json({ error: "Media not found" }, { status: 404 })
+    }
+
+    // Check ownership unless user can access all
+    if (!canAccessAllMedia(session) && media.uploadedBy !== session.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     return NextResponse.json(media)
@@ -56,6 +76,15 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
     if (!existingMedia) {
       return NextResponse.json({ error: "Media not found" }, { status: 404 })
+    }
+
+    // Check permission - can edit all OR can edit own media
+    const canEditAll = hasPermission(session, "media.delete_all")
+    const canEditOwn = hasPermission(session, "media.upload") // Users who can upload can edit their own
+    const isOwner = existingMedia.uploadedBy === session.user?.id
+
+    if (!canEditAll && !(canEditOwn && isOwner)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const { name, alt, folderId } = body
@@ -103,6 +132,15 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
 
     if (!existingMedia) {
       return NextResponse.json({ error: "Media not found" }, { status: 404 })
+    }
+
+    // Check permission - can delete all OR can delete own media
+    const canDeleteAll = hasPermission(session, "media.delete_all")
+    const canDeleteOwn = hasPermission(session, "media.delete")
+    const isOwner = existingMedia.uploadedBy === session.user?.id
+
+    if (!canDeleteAll && !(canDeleteOwn && isOwner)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     // Delete file from disk

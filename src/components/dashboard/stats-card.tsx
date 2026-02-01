@@ -11,6 +11,9 @@ import {
   Activity,
   TrendingUp,
   BarChart,
+  Globe,
+  PenSquare,
+  Image,
   type LucideIcon,
 } from "lucide-react"
 
@@ -23,6 +26,9 @@ const iconMap: Record<string, LucideIcon> = {
   Activity,
   TrendingUp,
   BarChart,
+  Globe,
+  FileEdit: PenSquare,
+  Image,
 }
 
 interface StatsCardProps {

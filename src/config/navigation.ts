@@ -14,21 +14,28 @@ import {
   BarChart3,
   Mail,
   History,
+  Globe,
+  GitBranch,
+  Receipt,
+  Gauge,
   type LucideIcon,
 } from "lucide-react"
 import { PERMISSIONS, type Permission } from "./permissions"
+import { type FeatureKey } from "@/lib/features"
 
 export type NavItem = {
   title: string
   href: string
   icon: LucideIcon
   permission?: Permission
+  feature?: FeatureKey
   badge?: string | number
 }
 
 export type NavGroup = {
   title: string
   items: NavItem[]
+  feature?: FeatureKey
 }
 
 export const navigation: NavGroup[] = [
@@ -45,6 +52,27 @@ export const navigation: NavGroup[] = [
         href: "/dashboard/analytics",
         icon: BarChart3,
         permission: PERMISSIONS.ANALYTICS_VIEW,
+      },
+      {
+        title: "Geography",
+        href: "/dashboard/analytics/geo",
+        icon: Globe,
+        permission: PERMISSIONS.ANALYTICS_ADVANCED,
+        feature: "advanced_analytics",
+      },
+      {
+        title: "Retention",
+        href: "/dashboard/analytics/retention",
+        icon: Users,
+        permission: PERMISSIONS.ANALYTICS_ADVANCED,
+        feature: "advanced_analytics",
+      },
+      {
+        title: "Funnels",
+        href: "/dashboard/analytics/funnels",
+        icon: GitBranch,
+        permission: PERMISSIONS.ANALYTICS_ADVANCED,
+        feature: "advanced_analytics",
       },
     ],
   },
@@ -112,6 +140,33 @@ export const navigation: NavGroup[] = [
     ],
   },
   {
+    title: "Billing",
+    feature: "stripe_billing",
+    items: [
+      {
+        title: "Overview",
+        href: "/dashboard/billing",
+        icon: CreditCard,
+        permission: PERMISSIONS.BILLING_VIEW,
+        feature: "stripe_billing",
+      },
+      {
+        title: "Usage",
+        href: "/dashboard/billing/usage",
+        icon: Gauge,
+        permission: PERMISSIONS.BILLING_VIEW,
+        feature: "usage_limits",
+      },
+      {
+        title: "Invoices",
+        href: "/dashboard/billing/invoices",
+        icon: Receipt,
+        permission: PERMISSIONS.BILLING_VIEW,
+        feature: "stripe_billing",
+      },
+    ],
+  },
+  {
     title: "Email",
     items: [
       {
@@ -147,6 +202,12 @@ export const navigation: NavGroup[] = [
         title: "Activity Log",
         href: "/dashboard/activity",
         icon: Activity,
+        permission: PERMISSIONS.ACTIVITY_VIEW,
+      },
+      {
+        title: "Timeline",
+        href: "/dashboard/activity/timeline",
+        icon: History,
         permission: PERMISSIONS.ACTIVITY_VIEW,
       },
       {

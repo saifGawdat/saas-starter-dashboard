@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { useDebounce } from "@/lib/hooks/use-debounce"
 import {
   CommandDialog,
@@ -15,7 +16,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { navigation } from "@/config/navigation"
+import { navigation, type NavGroup } from "@/config/navigation"
+import { useFeaturesStore } from "@/stores/features-store"
 import {
   Search,
   FileText,
@@ -56,6 +58,52 @@ export function SearchCommand() {
   const [isLoading, setIsLoading] = React.useState(false)
   const router = useRouter()
   const debouncedQuery = useDebounce(query, 300)
+  const { data: session, status } = useSession()
+  const { features, isLoaded, fetchFeatures, isFeatureEnabled } = useFeaturesStore()
+
+  // Fetch features on mount
+  React.useEffect(() => {
+    fetchFeatures()
+  }, [fetchFeatures])
+
+  // Filter navigation based on features and permissions
+  const filteredNavigation = React.useMemo(() => {
+    const userPermissions = session?.user?.permissions || []
+    const isAuthenticated = status === "authenticated"
+    const hasPermissions = userPermissions.length > 0
+
+    return navigation
+      .map((group): NavGroup | null => {
+        // Check if the entire group requires a feature that's disabled
+        if (group.feature && isLoaded && !isFeatureEnabled(group.feature)) {
+          return null
+        }
+
+        // Filter items within the group
+        const filteredItems = group.items.filter((item) => {
+          // Check feature flag - only filter if features are loaded
+          if (item.feature && isLoaded && !isFeatureEnabled(item.feature)) {
+            return false
+          }
+
+          // Check permission - only filter if authenticated and user has permissions
+          // If no permissions array, show all items (admin fallback)
+          if (item.permission && isAuthenticated && hasPermissions && !userPermissions.includes(item.permission)) {
+            return false
+          }
+
+          return true
+        })
+
+        // Don't show empty groups
+        if (filteredItems.length === 0) {
+          return null
+        }
+
+        return { ...group, items: filteredItems }
+      })
+      .filter((group): group is NavGroup => group !== null)
+  }, [session, status, features, isLoaded, isFeatureEnabled])
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -228,7 +276,7 @@ export function SearchCommand() {
           {/* Navigation - always show */}
           {(!query || query.length < 2) && (
             <>
-              {navigation.map((group) => (
+              {filteredNavigation.map((group) => (
                 <CommandGroup key={group.title} heading={group.title}>
                   {group.items.map((item) => {
                     const Icon = item.icon

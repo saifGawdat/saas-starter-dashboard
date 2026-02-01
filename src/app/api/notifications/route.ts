@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { z } from "zod"
+import { sendSSENotification } from "@/lib/notifications/sse"
+import { sendPushNotification } from "@/lib/notifications/push"
+import { isFeatureEnabled } from "@/lib/features"
 
 const createNotificationSchema = z.object({
   userId: z.string().min(1),
@@ -94,6 +97,34 @@ export async function POST(request: NextRequest) {
     const notification = await db.notification.create({
       data: data as any,
     })
+
+    // Send real-time notification via SSE if enabled
+    const sseEnabled = await isFeatureEnabled("realtime_notifications")
+    if (sseEnabled) {
+      sendSSENotification(data.userId, {
+        id: notification.id,
+        title: notification.title,
+        message: notification.message,
+        type: notification.type,
+        category: notification.category,
+        link: notification.link,
+        createdAt: notification.createdAt,
+      })
+    }
+
+    // Send push notification if enabled
+    const pushEnabled = await isFeatureEnabled("push_notifications")
+    if (pushEnabled) {
+      sendPushNotification(data.userId, {
+        title: notification.title,
+        body: notification.message,
+        tag: notification.id,
+        data: {
+          notificationId: notification.id,
+          link: notification.link,
+        },
+      })
+    }
 
     return NextResponse.json(notification, { status: 201 })
   } catch (error) {
