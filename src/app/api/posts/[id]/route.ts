@@ -8,11 +8,21 @@ interface RouteParams {
   params: Promise<{ id: string }>
 }
 
+// Helper to check permissions
+function hasPermission(session: { user?: { permissions?: string[] } }, permission: string) {
+  return session.user?.permissions?.includes(permission) ?? false
+}
+
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth()
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Check permission
+    if (!hasPermission(session, "posts.view")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const { id } = await params
@@ -49,6 +59,24 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     }
 
     const { id } = await params
+
+    const existingPost = await db.post.findUnique({
+      where: { id },
+    })
+
+    if (!existingPost) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 })
+    }
+
+    // Check permission - can edit all OR can edit own posts
+    const canEditAll = hasPermission(session, "posts.edit_all")
+    const canEditOwn = hasPermission(session, "posts.edit")
+    const isOwner = existingPost.authorId === session.user?.id
+
+    if (!canEditAll && !(canEditOwn && isOwner)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
     const body = await req.json()
     const validatedFields = postSchema.safeParse(body)
 
@@ -57,14 +85,6 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         { error: "Invalid fields", details: validatedFields.error.flatten() },
         { status: 400 }
       )
-    }
-
-    const existingPost = await db.post.findUnique({
-      where: { id },
-    })
-
-    if (!existingPost) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 })
     }
 
     const {
@@ -162,6 +182,15 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
 
     if (!existingPost) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 })
+    }
+
+    // Check permission - can delete all OR can delete own posts
+    const canDeleteAll = hasPermission(session, "posts.delete_all")
+    const canDeleteOwn = hasPermission(session, "posts.delete")
+    const isOwner = existingPost.authorId === session.user?.id
+
+    if (!canDeleteAll && !(canDeleteOwn && isOwner)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     await db.post.delete({

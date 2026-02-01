@@ -51,6 +51,13 @@ export default function RootLayout({
               (function() {
                 var root = document.documentElement;
 
+                // Apply locale direction (RTL/LTR) - must be first to prevent flash
+                var locale = localStorage.getItem('user-locale') || 'en';
+                var rtlLocales = ['ar', 'he', 'fa', 'ur'];
+                var dir = rtlLocales.indexOf(locale) !== -1 ? 'rtl' : 'ltr';
+                root.setAttribute('dir', dir);
+                root.setAttribute('lang', locale);
+
                 // Apply theme (light/dark/system)
                 var themeKey = 'dashboard-theme';
                 var theme = localStorage.getItem(themeKey) || 'dark';

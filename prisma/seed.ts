@@ -2,18 +2,19 @@ import { PrismaClient } from "@prisma/client"
 import bcrypt from "bcryptjs"
 import { DEFAULT_ROLE_PERMISSIONS } from "../src/config/permissions"
 import { defaultEmailTemplates } from "../src/lib/email/templates"
+import { DEFAULT_FEATURES } from "../src/lib/features"
 
 const prisma = new PrismaClient()
 
 async function main() {
   console.log("Starting seed...")
 
-  // Create roles
+  // Create roles (update permissions on re-seed to include new permissions)
   console.log("Creating roles...")
   const roles = await Promise.all([
     prisma.role.upsert({
       where: { name: "Admin" },
-      update: {},
+      update: { permissions: DEFAULT_ROLE_PERMISSIONS.Admin },
       create: {
         name: "Admin",
         description: "Full access to all features",
@@ -23,7 +24,7 @@ async function main() {
     }),
     prisma.role.upsert({
       where: { name: "Editor" },
-      update: {},
+      update: { permissions: DEFAULT_ROLE_PERMISSIONS.Editor },
       create: {
         name: "Editor",
         description: "Can manage content and media",
@@ -33,7 +34,7 @@ async function main() {
     }),
     prisma.role.upsert({
       where: { name: "Author" },
-      update: {},
+      update: { permissions: DEFAULT_ROLE_PERMISSIONS.Author },
       create: {
         name: "Author",
         description: "Can create and manage own content",
@@ -43,7 +44,7 @@ async function main() {
     }),
     prisma.role.upsert({
       where: { name: "User" },
-      update: {},
+      update: { permissions: DEFAULT_ROLE_PERMISSIONS.User },
       create: {
         name: "User",
         description: "Basic user access",
@@ -436,6 +437,21 @@ async function main() {
         category,
         email: true,
         inApp: true,
+      },
+    })
+  }
+
+  // Create default feature flags
+  console.log("Creating feature flags...")
+  for (const feature of DEFAULT_FEATURES) {
+    await prisma.featureFlag.upsert({
+      where: { key: feature.key },
+      update: {},
+      create: {
+        key: feature.key,
+        name: feature.name,
+        description: feature.description,
+        isEnabled: feature.isEnabled,
       },
     })
   }

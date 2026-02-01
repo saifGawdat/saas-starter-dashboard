@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Settings, Palette, Mail, Puzzle, Shield, Database, Bell } from "lucide-react"
+import { Settings, Palette, Mail, Puzzle, Shield, Database, Bell, ToggleLeft, Globe } from "lucide-react"
 
 const settingsNav = [
   {
@@ -47,6 +47,18 @@ const settingsNav = [
     href: "/dashboard/settings/backup",
     icon: Database,
     description: "Database backup",
+  },
+  {
+    title: "Features",
+    href: "/dashboard/settings/features",
+    icon: ToggleLeft,
+    description: "Feature flags",
+  },
+  {
+    title: "Language",
+    href: "/dashboard/settings/language",
+    icon: Globe,
+    description: "i18n settings",
   },
 ]
 

@@ -5,6 +5,11 @@ import { db } from "@/lib/db"
 import { auth } from "@/auth"
 import { logActivity, getVerifiedUser } from "@/lib/activity"
 
+// Helper to check permissions
+function hasPermission(session: { user?: { permissions?: string[] } }, permission: string) {
+  return session.user?.permissions?.includes(permission) ?? false
+}
+
 export async function GET() {
   try {
     const session = await auth()
@@ -12,7 +17,15 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Check permission
+    if (!hasPermission(session, "media.view")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
+    const canViewAll = hasPermission(session, "media.delete_all")
+
     const media = await db.media.findMany({
+      where: canViewAll ? {} : { uploadedBy: session.user.id },
       include: {
         folder: { select: { name: true } },
         uploader: { select: { name: true } },
@@ -35,6 +48,11 @@ export async function POST(req: NextRequest) {
     const session = await auth()
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Check permission
+    if (!hasPermission(session, "media.upload")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const formData = await req.formData()

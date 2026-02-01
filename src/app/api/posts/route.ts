@@ -4,11 +4,21 @@ import { auth } from "@/auth"
 import { logActivity, getVerifiedUser } from "@/lib/activity"
 import { postSchema } from "@/lib/validations/post"
 
+// Helper to check permissions
+function hasPermission(session: { user?: { permissions?: string[] } }, permission: string) {
+  return session.user?.permissions?.includes(permission) ?? false
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await auth()
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Check permission
+    if (!hasPermission(session, "posts.view")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const { searchParams } = new URL(req.url)
@@ -66,6 +76,11 @@ export async function POST(req: NextRequest) {
     const session = await auth()
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Check permission
+    if (!hasPermission(session, "posts.create")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
     const body = await req.json()

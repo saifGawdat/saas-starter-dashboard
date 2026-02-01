@@ -63,6 +63,22 @@ export const PERMISSIONS = {
   EMAIL_TEMPLATES_EDIT: "email.templates.edit",
   EMAIL_LOGS_VIEW: "email.logs.view",
   EMAIL_SEND: "email.send",
+
+  // Billing
+  BILLING_VIEW: "billing.view",
+  BILLING_MANAGE: "billing.manage",
+
+  // Features
+  FEATURES_VIEW: "features.view",
+  FEATURES_MANAGE: "features.manage",
+
+  // Advanced Analytics
+  ANALYTICS_EXPORT: "analytics.export",
+  ANALYTICS_ADVANCED: "analytics.advanced",
+
+  // Translations
+  TRANSLATIONS_VIEW: "translations.view",
+  TRANSLATIONS_EDIT: "translations.edit",
 } as const
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -153,6 +169,35 @@ export const PERMISSION_GROUPS = {
       { key: PERMISSIONS.EMAIL_TEMPLATES_EDIT, label: "Edit email templates" },
       { key: PERMISSIONS.EMAIL_LOGS_VIEW, label: "View email logs" },
       { key: PERMISSIONS.EMAIL_SEND, label: "Send emails" },
+    ],
+  },
+  billing: {
+    label: "Billing",
+    permissions: [
+      { key: PERMISSIONS.BILLING_VIEW, label: "View billing & invoices" },
+      { key: PERMISSIONS.BILLING_MANAGE, label: "Manage billing" },
+    ],
+  },
+  features: {
+    label: "Features",
+    permissions: [
+      { key: PERMISSIONS.FEATURES_VIEW, label: "View feature flags" },
+      { key: PERMISSIONS.FEATURES_MANAGE, label: "Manage feature flags" },
+    ],
+  },
+  analytics: {
+    label: "Analytics",
+    permissions: [
+      { key: PERMISSIONS.ANALYTICS_VIEW, label: "View analytics" },
+      { key: PERMISSIONS.ANALYTICS_ADVANCED, label: "Access advanced analytics" },
+      { key: PERMISSIONS.ANALYTICS_EXPORT, label: "Export analytics data" },
+    ],
+  },
+  translations: {
+    label: "Translations",
+    permissions: [
+      { key: PERMISSIONS.TRANSLATIONS_VIEW, label: "View translations" },
+      { key: PERMISSIONS.TRANSLATIONS_EDIT, label: "Edit translations" },
     ],
   },
 }
