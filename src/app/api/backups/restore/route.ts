@@ -1,140 +1,142 @@
-import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { auth } from "@/auth"
-import { logActivity } from "@/lib/activity"
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity";
 
 interface BackupData {
-  version: string
-  createdAt: string
-  createdBy: string
+  version: string;
+  createdAt: string;
+  createdBy: string;
   data: {
     roles?: Array<{
-      id: string
-      name: string
-      description?: string | null
-      permissions: unknown
-      isDefault: boolean
-      createdAt: string
-      updatedAt: string
-    }>
+      id: string;
+      name: string;
+      description?: string | null;
+      permissions: unknown;
+      isDefault: boolean;
+      createdAt: string;
+      updatedAt: string;
+    }>;
     categories?: Array<{
-      id: string
-      name: string
-      slug: string
-      description?: string | null
-      parentId?: string | null
-      order: number
-      createdAt: string
-      updatedAt: string
-    }>
+      id: string;
+      name: string;
+      slug: string;
+      description?: string | null;
+      parentId?: string | null;
+      order: number;
+      createdAt: string;
+      updatedAt: string;
+    }>;
     tags?: Array<{
-      id: string
-      name: string
-      slug: string
-      color?: string | null
-      createdAt: string
-      updatedAt: string
-    }>
+      id: string;
+      name: string;
+      slug: string;
+      color?: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>;
     settings?: Array<{
-      id: string
-      key: string
-      value: string
-      group: string
-      createdAt: string
-      updatedAt: string
-    }>
+      id: string;
+      key: string;
+      value: string;
+      group: string;
+      createdAt: string;
+      updatedAt: string;
+    }>;
     redirects?: Array<{
-      id: string
-      source: string
-      destination: string
-      statusCode: number
-      hitCount: number
-      isActive: boolean
-      createdAt: string
-      updatedAt: string
-    }>
+      id: string;
+      source: string;
+      destination: string;
+      statusCode: number;
+      hitCount: number;
+      isActive: boolean;
+      createdAt: string;
+      updatedAt: string;
+    }>;
     emailTemplates?: Array<{
-      id: string
-      name: string
-      slug: string
-      subject: string
-      htmlContent: string
-      textContent?: string | null
-      variables?: unknown
-      description?: string | null
-      isActive: boolean
-      createdAt: string
-      updatedAt: string
-    }>
+      id: string;
+      name: string;
+      slug: string;
+      subject: string;
+      htmlContent: string;
+      textContent?: string | null;
+      variables?: unknown;
+      description?: string | null;
+      isActive: boolean;
+      createdAt: string;
+      updatedAt: string;
+    }>;
     plans?: Array<{
-      id: string
-      name: string
-      description?: string | null
-      monthlyPrice: string | number
-      yearlyPrice: string | number
-      features: unknown
-      trialDays: number
-      status: "ACTIVE" | "INACTIVE" | "ARCHIVED"
-      sortOrder: number
-      isPopular: boolean
-      createdAt: string
-      updatedAt: string
-    }>
-  }
+      id: string;
+      name: string;
+      description?: string | null;
+      monthlyPrice: string | number;
+      yearlyPrice: string | number;
+      features: unknown;
+      trialDays: number;
+      status: "ACTIVE" | "INACTIVE" | "ARCHIVED";
+      sortOrder: number;
+      isPopular: boolean;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+  };
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const formData = await req.formData()
-    const file = formData.get("file") as File | null
-    const restoreOptions = formData.get("options") as string | null
+    const formData = await req.formData();
+    const file = formData.get("file") as File | null;
+    const restoreOptions = formData.get("options") as string | null;
 
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 })
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
     // Parse options
-    const options = restoreOptions ? JSON.parse(restoreOptions) : {
-      roles: true,
-      categories: true,
-      tags: true,
-      settings: true,
-      redirects: true,
-      emailTemplates: true,
-      plans: true,
-    }
+    const options = restoreOptions
+      ? JSON.parse(restoreOptions)
+      : {
+          roles: true,
+          categories: true,
+          tags: true,
+          settings: true,
+          redirects: true,
+          emailTemplates: true,
+          plans: true,
+        };
 
     // Read and parse backup file
-    const content = await file.text()
-    let backupData: BackupData
+    const content = await file.text();
+    let backupData: BackupData;
 
     try {
-      backupData = JSON.parse(content)
+      backupData = JSON.parse(content);
     } catch {
       return NextResponse.json(
         { error: "Invalid backup file format" },
-        { status: 400 }
-      )
+        { status: 400 },
+      );
     }
 
     // Validate backup structure
     if (!backupData.version || !backupData.data) {
       return NextResponse.json(
         { error: "Invalid backup file structure" },
-        { status: 400 }
-      )
+        { status: 400 },
+      );
     }
 
-    const results: Record<string, number> = {}
+    const results: Record<string, number> = {};
 
     // Restore roles (but not users to avoid auth issues)
     if (options.roles && backupData.data.roles) {
-      let count = 0
+      let count = 0;
       for (const role of backupData.data.roles) {
         try {
           await db.role.upsert({
@@ -152,13 +154,13 @@ export async function POST(req: NextRequest) {
               permissions: role.permissions as object,
               isDefault: role.isDefault,
             },
-          })
-          count++
+          });
+          count++;
         } catch {
           // Skip duplicate names
         }
       }
-      results.roles = count
+      results.roles = count;
     }
 
     // Restore categories
@@ -181,7 +183,7 @@ export async function POST(req: NextRequest) {
               description: cat.description,
               order: cat.order,
             },
-          })
+          });
         } catch {
           // Skip duplicates
         }
@@ -193,18 +195,18 @@ export async function POST(req: NextRequest) {
             await db.category.update({
               where: { id: cat.id },
               data: { parentId: cat.parentId },
-            })
+            });
           } catch {
             // Skip if parent doesn't exist
           }
         }
       }
-      results.categories = backupData.data.categories.length
+      results.categories = backupData.data.categories.length;
     }
 
     // Restore tags
     if (options.tags && backupData.data.tags) {
-      let count = 0
+      let count = 0;
       for (const tag of backupData.data.tags) {
         try {
           await db.tag.upsert({
@@ -220,18 +222,18 @@ export async function POST(req: NextRequest) {
               slug: tag.slug,
               color: tag.color,
             },
-          })
-          count++
+          });
+          count++;
         } catch {
           // Skip duplicates
         }
       }
-      results.tags = count
+      results.tags = count;
     }
 
     // Restore settings
     if (options.settings && backupData.data.settings) {
-      let count = 0
+      let count = 0;
       for (const setting of backupData.data.settings) {
         try {
           await db.setting.upsert({
@@ -245,18 +247,18 @@ export async function POST(req: NextRequest) {
               value: setting.value,
               group: setting.group,
             },
-          })
-          count++
+          });
+          count++;
         } catch {
           // Skip errors
         }
       }
-      results.settings = count
+      results.settings = count;
     }
 
     // Restore redirects
     if (options.redirects && backupData.data.redirects) {
-      let count = 0
+      let count = 0;
       for (const redirect of backupData.data.redirects) {
         try {
           await db.redirect.upsert({
@@ -274,18 +276,18 @@ export async function POST(req: NextRequest) {
               statusCode: redirect.statusCode,
               isActive: redirect.isActive,
             },
-          })
-          count++
+          });
+          count++;
         } catch {
           // Skip duplicates
         }
       }
-      results.redirects = count
+      results.redirects = count;
     }
 
     // Restore email templates
     if (options.emailTemplates && backupData.data.emailTemplates) {
-      let count = 0
+      let count = 0;
       for (const template of backupData.data.emailTemplates) {
         try {
           await db.emailTemplate.upsert({
@@ -311,18 +313,18 @@ export async function POST(req: NextRequest) {
               description: template.description,
               isActive: template.isActive,
             },
-          })
-          count++
+          });
+          count++;
         } catch {
           // Skip duplicates
         }
       }
-      results.emailTemplates = count
+      results.emailTemplates = count;
     }
 
     // Restore plans
     if (options.plans && backupData.data.plans) {
-      let count = 0
+      let count = 0;
       for (const plan of backupData.data.plans) {
         try {
           await db.plan.upsert({
@@ -350,32 +352,32 @@ export async function POST(req: NextRequest) {
               sortOrder: plan.sortOrder,
               isPopular: plan.isPopular,
             },
-          })
-          count++
+          });
+          count++;
         } catch {
           // Skip duplicates
         }
       }
-      results.plans = count
+      results.plans = count;
     }
 
     await logActivity({
       userId: session.user.id,
       action: "restored",
       entity: "backup",
-      description: `Restored backup from ${backupData.createdAt}`,
-    })
+      description: `Restored backup from "${backupData.createdAt}"`,
+    });
 
     return NextResponse.json({
       success: true,
       message: "Backup restored successfully",
       results,
-    })
+    });
   } catch (error) {
-    console.error("Error restoring backup:", error)
+    console.error("Error restoring backup:", error);
     return NextResponse.json(
       { error: "Failed to restore backup" },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }

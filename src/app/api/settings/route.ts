@@ -1,50 +1,60 @@
-import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { auth } from "@/auth"
-import { logActivity } from "@/lib/activity"
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity";
+import { hasPermission } from "@/lib/permissions";
+import { PERMISSIONS } from "@/config/permissions";
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { searchParams } = new URL(req.url)
-    const group = searchParams.get("group")
+    if (!hasPermission(session, PERMISSIONS.SETTINGS_VIEW)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
-    const where = group ? { group } : {}
+    const { searchParams } = new URL(req.url);
+    const group = searchParams.get("group");
+
+    const where = group ? { group } : {};
 
     const settings = await db.setting.findMany({
       where,
       orderBy: { key: "asc" },
-    })
+    });
 
-    return NextResponse.json(settings)
+    return NextResponse.json(settings);
   } catch (error) {
-    console.error("Error fetching settings:", error)
+    console.error("Error fetching settings:", error);
     return NextResponse.json(
       { error: "Failed to fetch settings" },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json()
-    const { group, settings } = body
+    if (!hasPermission(session, PERMISSIONS.SETTINGS_EDIT)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const { group, settings } = body;
 
     if (!group || !Array.isArray(settings)) {
       return NextResponse.json(
         { error: "Invalid request body" },
-        { status: 400 }
-      )
+        { status: 400 },
+      );
     }
 
     // Upsert each setting
@@ -54,24 +64,24 @@ export async function POST(req: NextRequest) {
           where: { key },
           update: { value },
           create: { key, value, group },
-        })
-      )
-    )
+        }),
+      ),
+    );
 
     // Log activity (safe - won't fail if user doesn't exist)
     await logActivity({
       userId: session.user.id,
       action: "updated",
       entity: "settings",
-      description: `Updated ${group} settings`,
-    })
+      description: `Updated "${group}" settings`,
+    });
 
-    return NextResponse.json(results)
+    return NextResponse.json(results);
   } catch (error) {
-    console.error("Error saving settings:", error)
+    console.error("Error saving settings:", error);
     return NextResponse.json(
       { error: "Failed to save settings" },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }

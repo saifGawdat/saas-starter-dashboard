@@ -14,6 +14,10 @@ export const PERMISSIONS = {
   POSTS_DELETE_ALL: "posts.delete_all",
   POSTS_PUBLISH: "posts.publish",
 
+  // Notifications
+  NOTIFICATIONS_VIEW: "notifications.view",
+  NOTIFICATIONS_MANAGE: "notifications.manage",
+
   // Categories
   CATEGORIES_MANAGE: "categories.manage",
 
@@ -45,23 +49,32 @@ export const PERMISSIONS = {
 
   // Analytics
   ANALYTICS_VIEW: "analytics.view",
+  ANALYTICS_EXPORT: "analytics.export",
+  ANALYTICS_ADVANCED: "analytics.advanced",
+
+  // Backups
+  BACKUPS_VIEW: "backups.view",
+  BACKUPS_MANAGE: "backups.manage",
 
   // Plans
   PLANS_VIEW: "plans.view",
   PLANS_CREATE: "plans.create",
   PLANS_EDIT: "plans.edit",
   PLANS_DELETE: "plans.delete",
+  PLANS_MANAGE: "plans.manage",
 
   // Subscriptions
   SUBSCRIPTIONS_VIEW: "subscriptions.view",
   SUBSCRIPTIONS_CREATE: "subscriptions.create",
   SUBSCRIPTIONS_EDIT: "subscriptions.edit",
   SUBSCRIPTIONS_CANCEL: "subscriptions.cancel",
+  SUBSCRIPTIONS_MANAGE: "subscriptions.manage",
 
   // Email
   EMAIL_TEMPLATES_VIEW: "email.templates.view",
   EMAIL_TEMPLATES_EDIT: "email.templates.edit",
   EMAIL_LOGS_VIEW: "email.logs.view",
+  EMAIL_LOGS_EDIT: "email.logs.edit",
   EMAIL_SEND: "email.send",
 
   // Billing
@@ -72,16 +85,12 @@ export const PERMISSIONS = {
   FEATURES_VIEW: "features.view",
   FEATURES_MANAGE: "features.manage",
 
-  // Advanced Analytics
-  ANALYTICS_EXPORT: "analytics.export",
-  ANALYTICS_ADVANCED: "analytics.advanced",
-
   // Translations
   TRANSLATIONS_VIEW: "translations.view",
   TRANSLATIONS_EDIT: "translations.edit",
-} as const
+} as const;
 
-export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
+export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
 export const PERMISSION_GROUPS = {
   users: {
@@ -142,6 +151,8 @@ export const PERMISSION_GROUPS = {
       { key: PERMISSIONS.ROLES_MANAGE, label: "Manage roles" },
       { key: PERMISSIONS.ACTIVITY_VIEW, label: "View activity logs" },
       { key: PERMISSIONS.ANALYTICS_VIEW, label: "View analytics" },
+      { key: PERMISSIONS.BACKUPS_VIEW, label: "View backups" },
+      { key: PERMISSIONS.BACKUPS_MANAGE, label: "Manage backups" },
     ],
   },
   plans: {
@@ -151,6 +162,7 @@ export const PERMISSION_GROUPS = {
       { key: PERMISSIONS.PLANS_CREATE, label: "Create plans" },
       { key: PERMISSIONS.PLANS_EDIT, label: "Edit plans" },
       { key: PERMISSIONS.PLANS_DELETE, label: "Delete plans" },
+      { key: PERMISSIONS.PLANS_MANAGE, label: "Manage plans (All)" },
     ],
   },
   subscriptions: {
@@ -160,6 +172,10 @@ export const PERMISSION_GROUPS = {
       { key: PERMISSIONS.SUBSCRIPTIONS_CREATE, label: "Assign subscriptions" },
       { key: PERMISSIONS.SUBSCRIPTIONS_EDIT, label: "Edit subscriptions" },
       { key: PERMISSIONS.SUBSCRIPTIONS_CANCEL, label: "Cancel subscriptions" },
+      {
+        key: PERMISSIONS.SUBSCRIPTIONS_MANAGE,
+        label: "Manage subscriptions (All)",
+      },
     ],
   },
   email: {
@@ -168,6 +184,7 @@ export const PERMISSION_GROUPS = {
       { key: PERMISSIONS.EMAIL_TEMPLATES_VIEW, label: "View email templates" },
       { key: PERMISSIONS.EMAIL_TEMPLATES_EDIT, label: "Edit email templates" },
       { key: PERMISSIONS.EMAIL_LOGS_VIEW, label: "View email logs" },
+      { key: PERMISSIONS.EMAIL_LOGS_EDIT, label: "Manage email logs" },
       { key: PERMISSIONS.EMAIL_SEND, label: "Send emails" },
     ],
   },
@@ -189,7 +206,10 @@ export const PERMISSION_GROUPS = {
     label: "Analytics",
     permissions: [
       { key: PERMISSIONS.ANALYTICS_VIEW, label: "View analytics" },
-      { key: PERMISSIONS.ANALYTICS_ADVANCED, label: "Access advanced analytics" },
+      {
+        key: PERMISSIONS.ANALYTICS_ADVANCED,
+        label: "Access advanced analytics",
+      },
       { key: PERMISSIONS.ANALYTICS_EXPORT, label: "Export analytics data" },
     ],
   },
@@ -200,7 +220,14 @@ export const PERMISSION_GROUPS = {
       { key: PERMISSIONS.TRANSLATIONS_EDIT, label: "Edit translations" },
     ],
   },
-}
+  notifications: {
+    label: "Notifications",
+    permissions: [
+      { key: PERMISSIONS.NOTIFICATIONS_VIEW, label: "View notifications" },
+      { key: PERMISSIONS.NOTIFICATIONS_MANAGE, label: "Manage notifications" },
+    ],
+  },
+};
 
 export const DEFAULT_ROLE_PERMISSIONS = {
   Admin: Object.values(PERMISSIONS),
@@ -219,6 +246,9 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     PERMISSIONS.SEO_MANAGE,
     PERMISSIONS.PLANS_VIEW,
     PERMISSIONS.SUBSCRIPTIONS_VIEW,
+    PERMISSIONS.USERS_VIEW,
+    PERMISSIONS.ROLES_VIEW,
+    PERMISSIONS.SETTINGS_VIEW,
     PERMISSIONS.ANALYTICS_VIEW,
     PERMISSIONS.EMAIL_TEMPLATES_VIEW,
     PERMISSIONS.EMAIL_LOGS_VIEW,
@@ -232,10 +262,9 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     PERMISSIONS.MEDIA_UPLOAD,
     PERMISSIONS.MEDIA_DELETE,
     PERMISSIONS.TAGS_MANAGE,
+    PERMISSIONS.USERS_VIEW,
+    PERMISSIONS.ROLES_VIEW,
     PERMISSIONS.PLANS_VIEW,
   ],
-  User: [
-    PERMISSIONS.POSTS_VIEW,
-    PERMISSIONS.MEDIA_VIEW,
-  ],
-}
+  User: [PERMISSIONS.POSTS_VIEW, PERMISSIONS.MEDIA_VIEW],
+};

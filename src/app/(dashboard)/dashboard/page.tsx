@@ -1,10 +1,10 @@
-import { auth } from "@/auth"
-import { db } from "@/lib/db"
-import { StatsCard } from "@/components/dashboard/stats-card"
-import { AreaChart } from "@/components/dashboard/charts/area-chart"
-import { LineChart } from "@/components/dashboard/charts/line-chart"
-import { PieChart } from "@/components/dashboard/charts/pie-chart"
-import { RecentActivity } from "@/components/dashboard/recent-activity"
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { StatsCard } from "@/components/dashboard/stats-card";
+import { AreaChart } from "@/components/dashboard/charts/area-chart";
+import { LineChart } from "@/components/dashboard/charts/line-chart";
+import { PieChart } from "@/components/dashboard/charts/pie-chart";
+import { RecentActivity } from "@/components/dashboard/recent-activity";
 import {
   getDashboardStats,
   getUserGrowthData,
@@ -15,21 +15,21 @@ import {
   getVisitorStats,
   getActiveUsers,
   getPageViewTrends,
-} from "@/lib/dashboard/analytics"
+} from "@/lib/dashboard/analytics";
 
 export const metadata = {
   title: "Dashboard - Overview",
   description: "Dashboard overview page",
-}
+};
 
 function formatNumber(num: number): string {
   if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + "M"
+    return (num / 1000000).toFixed(1) + "M";
   }
   if (num >= 1000) {
-    return (num / 1000).toFixed(1) + "K"
+    return (num / 1000).toFixed(1) + "K";
   }
-  return num.toString()
+  return num.toString();
 }
 
 function formatCurrency(amount: number): string {
@@ -38,7 +38,7 @@ function formatCurrency(amount: number): string {
     currency: "USD",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount)
+  }).format(amount);
 }
 
 // Get user-specific stats for regular users
@@ -66,7 +66,7 @@ async function getUserStats(userId: string) {
         _count: { select: { tags: true } },
       },
     }),
-  ])
+  ]);
 
   return {
     totalPosts: userPosts,
@@ -74,7 +74,7 @@ async function getUserStats(userId: string) {
     draftPosts: userDraftPosts,
     totalMedia: userMedia,
     recentPosts: recentUserPosts,
-  }
+  };
 }
 
 // Get user's recent activity
@@ -83,24 +83,28 @@ async function getUserRecentActivity(userId: string, limit = 10) {
     where: { userId },
     orderBy: { createdAt: "desc" },
     take: limit,
-  })
+  });
 
   return activities.map((activity) => ({
     id: activity.id,
     user: { name: "You", image: undefined },
     action: activity.action,
     entity: activity.entity,
-    entityName: activity.description?.split("'")[1] || activity.entityId || undefined,
+    entityName:
+      activity.description?.match(/["']([^"']*)["']|:\s*(.+)$/)?.[1] ||
+      activity.description?.match(/["']([^"']*)["']|:\s*(.+)$/)?.[2] ||
+      activity.entityId ||
+      undefined,
     createdAt: activity.createdAt,
-  }))
+  }));
 }
 
 export default async function DashboardPage() {
-  const session = await auth()
+  const session = await auth();
 
   // Check permissions - any role with analytics.view can see full dashboard
-  const permissions = session?.user?.permissions || []
-  const canViewAnalytics = permissions.includes("analytics.view")
+  const permissions = session?.user?.permissions || [];
+  const canViewAnalytics = permissions.includes("analytics.view");
 
   if (canViewAnalytics) {
     // Admin/Analytics view - full dashboard
@@ -124,7 +128,7 @@ export default async function DashboardPage() {
       getVisitorStats(),
       getActiveUsers(),
       getPageViewTrends(),
-    ])
+    ]);
 
     return (
       <div className="space-y-6">
@@ -137,7 +141,10 @@ export default async function DashboardPage() {
         </div>
 
         {/* Stats Cards */}
-        <div data-tour="dashboard-stats" className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div
+          data-tour="dashboard-stats"
+          className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
+        >
           <StatsCard
             title="Total Users"
             value={formatNumber(stats.totalUsers)}
@@ -196,8 +203,16 @@ export default async function DashboardPage() {
             data={userGrowth}
             xAxisKey="month"
             lines={[
-              { dataKey: "totalUsers", color: "hsl(var(--chart-1))", name: "Total Users" },
-              { dataKey: "newUsers", color: "hsl(var(--chart-2))", name: "New Users" },
+              {
+                dataKey: "totalUsers",
+                color: "hsl(var(--chart-1))",
+                name: "Total Users",
+              },
+              {
+                dataKey: "newUsers",
+                color: "hsl(var(--chart-2))",
+                name: "New Users",
+              },
             ]}
           />
           <LineChart
@@ -206,8 +221,16 @@ export default async function DashboardPage() {
             data={pageViewTrends}
             xAxisKey="date"
             lines={[
-              { dataKey: "pageViews", color: "hsl(var(--chart-3))", name: "Page Views" },
-              { dataKey: "uniqueVisitors", color: "hsl(var(--chart-4))", name: "Unique Visitors" },
+              {
+                dataKey: "pageViews",
+                color: "hsl(var(--chart-3))",
+                name: "Page Views",
+              },
+              {
+                dataKey: "uniqueVisitors",
+                color: "hsl(var(--chart-4))",
+                name: "Unique Visitors",
+              },
             ]}
           />
         </div>
@@ -229,33 +252,49 @@ export default async function DashboardPage() {
           <PieChart
             title="Posts by Category"
             description="Distribution of content"
-            data={postsByCategory.length > 0 ? postsByCategory : [{ name: "No posts", value: 1, color: "hsl(var(--muted))" }]}
+            data={
+              postsByCategory.length > 0
+                ? postsByCategory
+                : [{ name: "No posts", value: 1, color: "hsl(var(--muted))" }]
+            }
           />
           <PieChart
             title="Subscriptions by Plan"
             description="Active subscriptions per plan"
-            data={planDistribution.length > 0 ? planDistribution : [{ name: "No subscriptions", value: 1, color: "hsl(var(--muted))" }]}
+            data={
+              planDistribution.length > 0
+                ? planDistribution
+                : [
+                    {
+                      name: "No subscriptions",
+                      value: 1,
+                      color: "hsl(var(--muted))",
+                    },
+                  ]
+            }
           />
           <RecentActivity activities={recentActivities} />
         </div>
       </div>
-    )
+    );
   }
 
   // Regular user view - personal dashboard
-  const userId = session?.user?.id
+  const userId = session?.user?.id;
   if (!userId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Please sign in to view your dashboard.</p>
+        <p className="text-muted-foreground">
+          Please sign in to view your dashboard.
+        </p>
       </div>
-    )
+    );
   }
 
   const [userStats, userActivity] = await Promise.all([
     getUserStats(userId),
     getUserRecentActivity(userId, 10),
-  ])
+  ]);
 
   return (
     <div className="space-y-6">
@@ -263,12 +302,16 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">My Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome back, {session?.user?.name || "User"}! Here&apos;s your activity overview.
+          Welcome back, {session?.user?.name || "User"}! Here&apos;s your
+          activity overview.
         </p>
       </div>
 
       {/* User Stats Cards */}
-      <div data-tour="dashboard-stats" className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div
+        data-tour="dashboard-stats"
+        className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+      >
         <StatsCard
           title="My Posts"
           value={formatNumber(userStats.totalPosts)}
@@ -301,22 +344,29 @@ export default async function DashboardPage() {
         <div className="rounded-lg border bg-card p-6">
           <h3 className="font-semibold mb-4">Recent Posts</h3>
           {userStats.recentPosts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No posts yet. Create your first post!</p>
+            <p className="text-sm text-muted-foreground">
+              No posts yet. Create your first post!
+            </p>
           ) : (
             <div className="space-y-3">
               {userStats.recentPosts.map((post) => (
-                <div key={post.id} className="flex items-center justify-between">
+                <div
+                  key={post.id}
+                  className="flex items-center justify-between"
+                >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{post.title}</p>
                     <p className="text-xs text-muted-foreground">
                       {post.status.toLowerCase()} · {post._count.tags} tags
                     </p>
                   </div>
-                  <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                    post.status === "PUBLISHED"
-                      ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                      : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
-                  }`}>
+                  <span
+                    className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
+                      post.status === "PUBLISHED"
+                        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                        : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
+                    }`}
+                  >
                     {post.status.toLowerCase()}
                   </span>
                 </div>
@@ -329,5 +379,5 @@ export default async function DashboardPage() {
         <RecentActivity activities={userActivity} />
       </div>
     </div>
-  )
+  );
 }

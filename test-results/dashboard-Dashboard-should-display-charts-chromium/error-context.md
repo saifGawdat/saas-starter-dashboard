@@ -1,0 +1,46 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - link "Dashboard" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - generic [ref=e9]: Dashboard
+      - blockquote [ref=e11]:
+        - paragraph [ref=e12]: “This dashboard has transformed how we manage our content. The intuitive interface and powerful features make administration a breeze.”
+        - contentinfo [ref=e13]: — Alex Johnson, Product Manager
+      - paragraph [ref=e14]: © 2026 Dashboard. All rights reserved.
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - heading "Welcome back" [level=1] [ref=e19]
+        - paragraph [ref=e20]: Enter your credentials to access your account
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - generic [ref=e23] [cursor=pointer]: Email
+          - textbox "Email" [ref=e24]:
+            - /placeholder: name@example.com
+            - text: admin@example.com
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - generic [ref=e27] [cursor=pointer]: Password
+            - link "Forgot password?" [ref=e28] [cursor=pointer]:
+              - /url: /forgot-password
+          - textbox "Password" [ref=e29]:
+            - /placeholder: Enter your password
+            - text: admin123
+        - generic [ref=e30]:
+          - checkbox "Remember me" [ref=e31] [cursor=pointer]
+          - checkbox
+          - generic [ref=e32] [cursor=pointer]: Remember me
+        - button "Sign in" [ref=e33] [cursor=pointer]
+      - paragraph [ref=e34]:
+        - text: Don't have an account?
+        - link "Sign up" [ref=e35] [cursor=pointer]:
+          - /url: /register
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e41] [cursor=pointer]:
+    - img [ref=e42]
+  - alert [ref=e45]
+```

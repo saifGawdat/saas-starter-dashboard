@@ -1,31 +1,29 @@
-import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { auth } from "@/auth"
-import { logActivity } from "@/lib/activity"
-import { postSchema } from "@/lib/validations/post"
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity";
+import { postSchema } from "@/lib/validations/post";
 
 interface RouteParams {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }
 
-// Helper to check permissions
-function hasPermission(session: { user?: { permissions?: string[] } }, permission: string) {
-  return session.user?.permissions?.includes(permission) ?? false
-}
+import { hasPermission } from "@/lib/permissions";
+import { PERMISSIONS } from "@/config/permissions";
 
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check permission
-    if (!hasPermission(session, "posts.view")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    if (!hasPermission(session, PERMISSIONS.POSTS_VIEW)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { id } = await params
+    const { id } = await params;
 
     const post = await db.post.findUnique({
       where: { id },
@@ -35,56 +33,56 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         tags: { include: { tag: true } },
         seoMeta: true,
       },
-    })
+    });
 
     if (!post) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 })
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    return NextResponse.json(post)
+    return NextResponse.json(post);
   } catch (error) {
-    console.error("Error fetching post:", error)
+    console.error("Error fetching post:", error);
     return NextResponse.json(
       { error: "Failed to fetch post" },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await params
+    const { id } = await params;
 
     const existingPost = await db.post.findUnique({
       where: { id },
-    })
+    });
 
     if (!existingPost) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 })
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
     // Check permission - can edit all OR can edit own posts
-    const canEditAll = hasPermission(session, "posts.edit_all")
-    const canEditOwn = hasPermission(session, "posts.edit")
-    const isOwner = existingPost.authorId === session.user?.id
+    const canEditAll = hasPermission(session, PERMISSIONS.POSTS_EDIT_ALL);
+    const canEditOwn = hasPermission(session, PERMISSIONS.POSTS_EDIT);
+    const isOwner = existingPost.authorId === session.user?.id;
 
     if (!canEditAll && !(canEditOwn && isOwner)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await req.json()
-    const validatedFields = postSchema.safeParse(body)
+    const body = await req.json();
+    const validatedFields = postSchema.safeParse(body);
 
     if (!validatedFields.success) {
       return NextResponse.json(
         { error: "Invalid fields", details: validatedFields.error.flatten() },
-        { status: 400 }
-      )
+        { status: 400 },
+      );
     }
 
     const {
@@ -96,31 +94,31 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       status,
       categoryId,
       tagIds,
-    } = validatedFields.data
+    } = validatedFields.data;
 
     // Check if slug is taken by another post
     if (slug !== existingPost.slug) {
       const slugTaken = await db.post.findUnique({
         where: { slug },
-      })
+      });
       if (slugTaken) {
         return NextResponse.json(
           { error: "A post with this slug already exists" },
-          { status: 400 }
-        )
+          { status: 400 },
+        );
       }
     }
 
     // Determine published date
-    let publishedAt = existingPost.publishedAt
+    let publishedAt = existingPost.publishedAt;
     if (status === "PUBLISHED" && !existingPost.publishedAt) {
-      publishedAt = new Date()
+      publishedAt = new Date();
     }
 
     // Delete existing tags and add new ones
     await db.postTag.deleteMany({
       where: { postId: id },
-    })
+    });
 
     const post = await db.post.update({
       where: { id },
@@ -146,7 +144,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         category: { select: { name: true } },
         tags: { include: { tag: true } },
       },
-    })
+    });
 
     // Log activity
     await logActivity({
@@ -155,47 +153,47 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       entity: "post",
       entityId: post.id,
       description: `Updated post "${post.title}"`,
-    })
+    });
 
-    return NextResponse.json(post)
+    return NextResponse.json(post);
   } catch (error) {
-    console.error("Error updating post:", error)
+    console.error("Error updating post:", error);
     return NextResponse.json(
       { error: "Failed to update post" },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }
 
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await params
+    const { id } = await params;
 
     const existingPost = await db.post.findUnique({
       where: { id },
-    })
+    });
 
     if (!existingPost) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 })
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
     // Check permission - can delete all OR can delete own posts
-    const canDeleteAll = hasPermission(session, "posts.delete_all")
-    const canDeleteOwn = hasPermission(session, "posts.delete")
-    const isOwner = existingPost.authorId === session.user?.id
+    const canDeleteAll = hasPermission(session, PERMISSIONS.POSTS_DELETE_ALL);
+    const canDeleteOwn = hasPermission(session, PERMISSIONS.POSTS_DELETE);
+    const isOwner = existingPost.authorId === session.user?.id;
 
     if (!canDeleteAll && !(canDeleteOwn && isOwner)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     await db.post.delete({
       where: { id },
-    })
+    });
 
     // Log activity
     await logActivity({
@@ -204,14 +202,14 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       entity: "post",
       entityId: id,
       description: `Deleted post "${existingPost.title}"`,
-    })
+    });
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting post:", error)
+    console.error("Error deleting post:", error);
     return NextResponse.json(
       { error: "Failed to delete post" },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }

@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, ArrowUpDown, Mail, Shield } from "lucide-react"
-import Link from "next/link"
-import { format } from "date-fns"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
+import { ColumnDef } from "@tanstack/react-table";
+import { MoreHorizontal, ArrowUpDown, Mail, Shield } from "lucide-react";
+import Link from "next/link";
+import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,17 +15,18 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
+import { UserActions } from "./user-actions";
 
 export type User = {
-  id: string
-  name: string | null
-  email: string
-  image: string | null
-  role: { name: string } | null
-  createdAt: Date
-  _count?: { posts: number }
-}
+  id: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+  role: { name: string } | null;
+  createdAt: Date;
+  _count?: { posts: number };
+};
 
 export const columns: ColumnDef<User>[] = [
   {
@@ -62,15 +63,16 @@ export const columns: ColumnDef<User>[] = [
           User
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
-      )
+      );
     },
     cell: ({ row }) => {
-      const user = row.original
-      const initials = user.name
-        ?.split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase() || "U"
+      const user = row.original;
+      const initials =
+        user.name
+          ?.split(" ")
+          .map((n) => n[0])
+          .join("")
+          .toUpperCase() || "U";
 
       return (
         <div className="flex items-center gap-3">
@@ -86,14 +88,14 @@ export const columns: ColumnDef<User>[] = [
             </p>
           </div>
         </div>
-      )
+      );
     },
   },
   {
     accessorKey: "role",
     header: "Role",
     cell: ({ row }) => {
-      const role = row.original.role
+      const role = row.original.role;
       return role ? (
         <Badge variant="secondary" className="flex items-center gap-1 w-fit">
           <Shield className="h-3 w-3" />
@@ -101,15 +103,15 @@ export const columns: ColumnDef<User>[] = [
         </Badge>
       ) : (
         <span className="text-muted-foreground">No role</span>
-      )
+      );
     },
   },
   {
     accessorKey: "_count.posts",
     header: "Posts",
     cell: ({ row }) => {
-      const count = row.original._count?.posts || 0
-      return <span className="text-muted-foreground">{count}</span>
+      const count = row.original._count?.posts || 0;
+      return <span className="text-muted-foreground">{count}</span>;
     },
   },
   {
@@ -124,44 +126,17 @@ export const columns: ColumnDef<User>[] = [
           Joined
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
-      )
+      );
     },
     cell: ({ row }) => {
-      return format(new Date(row.getValue("createdAt")), "MMM d, yyyy")
+      return format(new Date(row.getValue("createdAt")), "MMM d, yyyy");
     },
   },
   {
     id: "actions",
     cell: ({ row }) => {
-      const user = row.original
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(user.id)}>
-              Copy user ID
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href={`/dashboard/users/${user.id}`}>View details</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={`/dashboard/users/${user.id}`}>Edit user</Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive">
-              Delete user
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )
+      const user = row.original;
+      return <UserActions user={user} />;
     },
   },
-]
+];

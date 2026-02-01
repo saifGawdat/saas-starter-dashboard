@@ -1,20 +1,26 @@
-import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { auth } from "@/auth"
-import { logActivity } from "@/lib/activity"
-import { z } from "zod"
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { auth } from "@/auth";
+import { logActivity } from "@/lib/activity";
+import { hasPermission } from "@/lib/permissions";
+import { PERMISSIONS } from "@/config/permissions";
+import { z } from "zod";
 
 const tagSchema = z.object({
   name: z.string().min(1, "Name is required"),
   slug: z.string().min(1, "Slug is required"),
   color: z.string().optional().nullable(),
-})
+});
 
 export async function GET() {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!hasPermission(session, PERMISSIONS.POSTS_VIEW)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const tags = await db.tag.findMany({
@@ -22,54 +28,58 @@ export async function GET() {
         _count: { select: { posts: true } },
       },
       orderBy: { name: "asc" },
-    })
+    });
 
-    return NextResponse.json(tags)
+    return NextResponse.json(tags);
   } catch (error) {
-    console.error("Error fetching tags:", error)
+    console.error("Error fetching tags:", error);
     return NextResponse.json(
       { error: "Failed to fetch tags" },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json()
-    const validatedFields = tagSchema.safeParse(body)
+    if (!hasPermission(session, PERMISSIONS.TAGS_MANAGE)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const validatedFields = tagSchema.safeParse(body);
 
     if (!validatedFields.success) {
       return NextResponse.json(
         { error: "Invalid fields", details: validatedFields.error.flatten() },
-        { status: 400 }
-      )
+        { status: 400 },
+      );
     }
 
-    const { name, slug, color } = validatedFields.data
+    const { name, slug, color } = validatedFields.data;
 
     // Check if tag name or slug already exists
     const existingTag = await db.tag.findFirst({
       where: {
         OR: [{ name }, { slug }],
       },
-    })
+    });
 
     if (existingTag) {
       return NextResponse.json(
         { error: "A tag with this name or slug already exists" },
-        { status: 400 }
-      )
+        { status: 400 },
+      );
     }
 
     const tag = await db.tag.create({
       data: { name, slug, color: color ?? null },
-    })
+    });
 
     // Log activity
     await logActivity({
@@ -78,14 +88,14 @@ export async function POST(req: NextRequest) {
       entity: "tag",
       entityId: tag.id,
       description: `Created tag "${tag.name}"`,
-    })
+    });
 
-    return NextResponse.json(tag, { status: 201 })
+    return NextResponse.json(tag, { status: 201 });
   } catch (error) {
-    console.error("Error creating tag:", error)
+    console.error("Error creating tag:", error);
     return NextResponse.json(
       { error: "Failed to create tag" },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }

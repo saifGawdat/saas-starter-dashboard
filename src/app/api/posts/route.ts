@@ -1,41 +1,37 @@
-import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { auth } from "@/auth"
-import { logActivity, getVerifiedUser } from "@/lib/activity"
-import { postSchema } from "@/lib/validations/post"
-
-// Helper to check permissions
-function hasPermission(session: { user?: { permissions?: string[] } }, permission: string) {
-  return session.user?.permissions?.includes(permission) ?? false
-}
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { auth } from "@/auth";
+import { logActivity, getVerifiedUser } from "@/lib/activity";
+import { postSchema } from "@/lib/validations/post";
+import { hasPermission } from "@/lib/permissions";
+import { PERMISSIONS } from "@/config/permissions";
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check permission
-    if (!hasPermission(session, "posts.view")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    if (!hasPermission(session, PERMISSIONS.POSTS_VIEW)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { searchParams } = new URL(req.url)
-    const page = parseInt(searchParams.get("page") || "1")
-    const limit = parseInt(searchParams.get("limit") || "10")
-    const status = searchParams.get("status")
-    const search = searchParams.get("search")
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const status = searchParams.get("status");
+    const search = searchParams.get("search");
 
-    const skip = (page - 1) * limit
+    const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {}
-    if (status) where.status = status
+    const where: Record<string, unknown> = {};
+    if (status) where.status = status;
     if (search) {
       where.OR = [
         { title: { contains: search } },
         { slug: { contains: search } },
-      ]
+      ];
     }
 
     const [posts, total] = await Promise.all([
@@ -51,7 +47,7 @@ export async function GET(req: NextRequest) {
         take: limit,
       }),
       db.post.count({ where }),
-    ])
+    ]);
 
     return NextResponse.json({
       posts,
@@ -61,36 +57,35 @@ export async function GET(req: NextRequest) {
         total,
         totalPages: Math.ceil(total / limit),
       },
-    })
+    });
   } catch (error) {
-    console.error("Error fetching posts:", error)
+    console.error("Error fetching posts:", error);
     return NextResponse.json(
       { error: "Failed to fetch posts" },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check permission
-    if (!hasPermission(session, "posts.create")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    if (!hasPermission(session, PERMISSIONS.POSTS_CREATE)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await req.json()
-    const validatedFields = postSchema.safeParse(body)
+    const body = await req.json();
+    const validatedFields = postSchema.safeParse(body);
 
     if (!validatedFields.success) {
       return NextResponse.json(
         { error: "Invalid fields", details: validatedFields.error.flatten() },
-        { status: 400 }
-      )
+        { status: 400 },
+      );
     }
 
     const {
@@ -102,27 +97,27 @@ export async function POST(req: NextRequest) {
       status,
       categoryId,
       tagIds,
-    } = validatedFields.data
+    } = validatedFields.data;
 
     // Verify the author exists
-    const author = await getVerifiedUser(session.user.id)
+    const author = await getVerifiedUser(session.user.id);
     if (!author) {
       return NextResponse.json(
         { error: "Author not found. Please sign out and sign in again." },
-        { status: 400 }
-      )
+        { status: 400 },
+      );
     }
 
     // Check if slug already exists
     const existingPost = await db.post.findUnique({
       where: { slug },
-    })
+    });
 
     if (existingPost) {
       return NextResponse.json(
         { error: "A post with this slug already exists" },
-        { status: 400 }
-      )
+        { status: 400 },
+      );
     }
 
     const post = await db.post.create({
@@ -149,7 +144,7 @@ export async function POST(req: NextRequest) {
         category: { select: { name: true } },
         tags: { include: { tag: true } },
       },
-    })
+    });
 
     // Log activity
     await logActivity({
@@ -158,14 +153,14 @@ export async function POST(req: NextRequest) {
       entity: "post",
       entityId: post.id,
       description: `Created post "${post.title}"`,
-    })
+    });
 
-    return NextResponse.json(post, { status: 201 })
+    return NextResponse.json(post, { status: 201 });
   } catch (error) {
-    console.error("Error creating post:", error)
+    console.error("Error creating post:", error);
     return NextResponse.json(
       { error: "Failed to create post" },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }

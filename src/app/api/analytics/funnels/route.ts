@@ -1,49 +1,51 @@
-import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/auth"
-import { getFunnelAnalytics, defaultFunnels } from "@/lib/analytics/funnels"
-import { isFeatureEnabled } from "@/lib/features"
-import { PERMISSIONS } from "@/config/permissions"
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { getFunnelAnalytics, defaultFunnels } from "@/lib/analytics/funnels";
+import { isFeatureEnabled } from "@/lib/features";
+import { hasPermission } from "@/lib/permissions";
+import { PERMISSIONS } from "@/config/permissions";
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!session.user.permissions?.includes(PERMISSIONS.ANALYTICS_ADVANCED)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    if (!hasPermission(session, PERMISSIONS.ANALYTICS_ADVANCED)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Check if advanced analytics feature is enabled
-    const isEnabled = await isFeatureEnabled("advanced_analytics")
+    const isEnabled = await isFeatureEnabled("advanced_analytics");
     if (!isEnabled) {
       return NextResponse.json(
         { error: "Advanced analytics is not enabled" },
-        { status: 403 }
-      )
+        { status: 403 },
+      );
     }
 
-    const { searchParams } = new URL(req.url)
-    const funnel = (searchParams.get("funnel") || "signup") as keyof typeof defaultFunnels
-    const days = parseInt(searchParams.get("days") || "30")
+    const { searchParams } = new URL(req.url);
+    const funnel = (searchParams.get("funnel") ||
+      "signup") as keyof typeof defaultFunnels;
+    const days = parseInt(searchParams.get("days") || "30");
 
     if (!defaultFunnels[funnel]) {
-      return NextResponse.json({ error: "Invalid funnel" }, { status: 400 })
+      return NextResponse.json({ error: "Invalid funnel" }, { status: 400 });
     }
 
-    const endDate = new Date()
-    const startDate = new Date()
-    startDate.setDate(startDate.getDate() - days)
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
 
-    const data = await getFunnelAnalytics(funnel, startDate, endDate)
+    const data = await getFunnelAnalytics(funnel, startDate, endDate);
 
-    return NextResponse.json(data)
+    return NextResponse.json(data);
   } catch (error) {
-    console.error("Error fetching funnel analytics:", error)
+    console.error("Error fetching funnel analytics:", error);
     return NextResponse.json(
       { error: "Failed to fetch funnel analytics" },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }

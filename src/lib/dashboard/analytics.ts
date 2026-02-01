@@ -1,11 +1,19 @@
-import { db } from "@/lib/db"
-import { subMonths, subDays, subHours, startOfMonth, endOfMonth, startOfDay, format } from "date-fns"
+import { db } from "@/lib/db";
+import {
+  subMonths,
+  subDays,
+  subHours,
+  startOfMonth,
+  endOfMonth,
+  startOfDay,
+  format,
+} from "date-fns";
 
 export async function getDashboardStats() {
-  const now = new Date()
-  const currentMonthStart = startOfMonth(now)
-  const lastMonthStart = startOfMonth(subMonths(now, 1))
-  const lastMonthEnd = endOfMonth(subMonths(now, 1))
+  const now = new Date();
+  const currentMonthStart = startOfMonth(now);
+  const lastMonthStart = startOfMonth(subMonths(now, 1));
+  const lastMonthEnd = endOfMonth(subMonths(now, 1));
 
   // Get counts in parallel
   const [
@@ -65,29 +73,42 @@ export async function getDashboardStats() {
       where: { status: { in: ["ACTIVE", "TRIALING"] } },
       include: { plan: { select: { monthlyPrice: true, yearlyPrice: true } } },
     }),
-  ])
+  ]);
 
   // Calculate MRR
   const mrr = revenue.reduce((acc, sub) => {
     const price =
       sub.billingPeriod === "YEARLY"
         ? Number(sub.plan.yearlyPrice) / 12
-        : Number(sub.plan.monthlyPrice)
-    return acc + price
-  }, 0)
+        : Number(sub.plan.monthlyPrice);
+    return acc + price;
+  }, 0);
 
   // Calculate trends (percentage change)
-  const usersTrend = usersLastMonth > 0
-    ? Math.round(((usersThisMonth - usersLastMonth) / usersLastMonth) * 100)
-    : usersThisMonth > 0 ? 100 : 0
+  const usersTrend =
+    usersLastMonth > 0
+      ? Math.round(((usersThisMonth - usersLastMonth) / usersLastMonth) * 100)
+      : usersThisMonth > 0
+        ? 100
+        : 0;
 
-  const postsTrend = postsLastMonth > 0
-    ? Math.round(((postsThisMonth - postsLastMonth) / postsLastMonth) * 100)
-    : postsThisMonth > 0 ? 100 : 0
+  const postsTrend =
+    postsLastMonth > 0
+      ? Math.round(((postsThisMonth - postsLastMonth) / postsLastMonth) * 100)
+      : postsThisMonth > 0
+        ? 100
+        : 0;
 
-  const subscriptionsTrend = subscriptionsLastMonth > 0
-    ? Math.round(((subscriptionsThisMonth - subscriptionsLastMonth) / subscriptionsLastMonth) * 100)
-    : subscriptionsThisMonth > 0 ? 100 : 0
+  const subscriptionsTrend =
+    subscriptionsLastMonth > 0
+      ? Math.round(
+          ((subscriptionsThisMonth - subscriptionsLastMonth) /
+            subscriptionsLastMonth) *
+            100,
+        )
+      : subscriptionsThisMonth > 0
+        ? 100
+        : 0;
 
   return {
     totalUsers,
@@ -100,17 +121,17 @@ export async function getDashboardStats() {
       posts: postsTrend,
       subscriptions: subscriptionsTrend,
     },
-  }
+  };
 }
 
 export async function getUserGrowthData() {
-  const months = 6
-  const data = []
+  const months = 6;
+  const data = [];
 
   for (let i = months - 1; i >= 0; i--) {
-    const date = subMonths(new Date(), i)
-    const monthStart = startOfMonth(date)
-    const monthEnd = endOfMonth(date)
+    const date = subMonths(new Date(), i);
+    const monthStart = startOfMonth(date);
+    const monthEnd = endOfMonth(date);
 
     const [newUsers, totalUsers] = await Promise.all([
       db.user.count({
@@ -123,26 +144,26 @@ export async function getUserGrowthData() {
           createdAt: { lte: monthEnd },
         },
       }),
-    ])
+    ]);
 
     data.push({
       month: format(date, "MMM"),
       newUsers,
       totalUsers,
-    })
+    });
   }
 
-  return data
+  return data;
 }
 
 export async function getSubscriptionTrends() {
-  const months = 6
-  const data = []
+  const months = 6;
+  const data = [];
 
   for (let i = months - 1; i >= 0; i--) {
-    const date = subMonths(new Date(), i)
-    const monthStart = startOfMonth(date)
-    const monthEnd = endOfMonth(date)
+    const date = subMonths(new Date(), i);
+    const monthStart = startOfMonth(date);
+    const monthEnd = endOfMonth(date);
 
     const [newSubscriptions, activeSubscriptions, revenue] = await Promise.all([
       db.subscription.count({
@@ -161,26 +182,28 @@ export async function getSubscriptionTrends() {
           status: { in: ["ACTIVE", "TRIALING"] },
           createdAt: { lte: monthEnd },
         },
-        include: { plan: { select: { monthlyPrice: true, yearlyPrice: true } } },
+        include: {
+          plan: { select: { monthlyPrice: true, yearlyPrice: true } },
+        },
       }),
-    ])
+    ]);
 
     const mrr = revenue.reduce((acc, sub) => {
       const price =
         sub.billingPeriod === "YEARLY"
           ? Number(sub.plan.yearlyPrice) / 12
-          : Number(sub.plan.monthlyPrice)
-      return acc + price
-    }, 0)
+          : Number(sub.plan.monthlyPrice);
+      return acc + price;
+    }, 0);
 
     data.push({
       month: format(date, "MMM"),
       subscriptions: activeSubscriptions,
       revenue: Math.round(mrr),
-    })
+    });
   }
 
-  return data
+  return data;
 }
 
 export async function getPostsByCategory() {
@@ -190,7 +213,7 @@ export async function getPostsByCategory() {
     },
     orderBy: { posts: { _count: "desc" } },
     take: 5,
-  })
+  });
 
   const colors = [
     "hsl(var(--chart-1))",
@@ -198,33 +221,33 @@ export async function getPostsByCategory() {
     "hsl(var(--chart-3))",
     "hsl(var(--chart-4))",
     "hsl(var(--chart-5))",
-  ]
+  ];
 
   return categories.map((cat, index) => ({
     name: cat.name,
     value: cat._count.posts,
     color: colors[index % colors.length],
-  }))
+  }));
 }
 
 export async function getPostsByStatus() {
   const statuses = await db.post.groupBy({
     by: ["status"],
     _count: { status: true },
-  })
+  });
 
   const colors: Record<string, string> = {
     DRAFT: "hsl(var(--chart-1))",
     PUBLISHED: "hsl(var(--chart-2))",
     SCHEDULED: "hsl(var(--chart-3))",
     ARCHIVED: "hsl(var(--chart-4))",
-  }
+  };
 
   return statuses.map((s) => ({
     name: s.status.charAt(0) + s.status.slice(1).toLowerCase(),
     value: s._count.status,
     color: colors[s.status] || "hsl(var(--chart-5))",
-  }))
+  }));
 }
 
 export async function getRecentActivity(limit = 10) {
@@ -234,7 +257,7 @@ export async function getRecentActivity(limit = 10) {
     },
     orderBy: { createdAt: "desc" },
     take: limit,
-  })
+  });
 
   return activities.map((activity) => ({
     id: activity.id,
@@ -244,9 +267,13 @@ export async function getRecentActivity(limit = 10) {
     },
     action: activity.action,
     entity: activity.entity,
-    entityName: activity.description?.split("'")[1] || activity.entityId || undefined,
+    entityName:
+      activity.description?.match(/["']([^"']*)["']|:\s*(.+)$/)?.[1] ||
+      activity.description?.match(/["']([^"']*)["']|:\s*(.+)$/)?.[2] ||
+      activity.entityId ||
+      undefined,
     createdAt: activity.createdAt,
-  }))
+  }));
 }
 
 export async function getPlanDistribution() {
@@ -258,7 +285,7 @@ export async function getPlanDistribution() {
       subscriptions: { some: {} },
     },
     orderBy: { subscriptions: { _count: "desc" } },
-  })
+  });
 
   const colors = [
     "hsl(var(--chart-1))",
@@ -266,21 +293,21 @@ export async function getPlanDistribution() {
     "hsl(var(--chart-3))",
     "hsl(var(--chart-4))",
     "hsl(var(--chart-5))",
-  ]
+  ];
 
   return plans.map((plan, index) => ({
     name: plan.name,
     value: plan._count.subscriptions,
     color: colors[index % colors.length],
-  }))
+  }));
 }
 
 export async function getVisitorStats() {
-  const now = new Date()
-  const today = startOfDay(now)
-  const last24Hours = subHours(now, 24)
-  const last7Days = subDays(now, 7)
-  const last30Days = subDays(now, 30)
+  const now = new Date();
+  const today = startOfDay(now);
+  const last24Hours = subHours(now, 24);
+  const last7Days = subDays(now, 7);
+  const last30Days = subDays(now, 30);
 
   const [
     totalPageViews,
@@ -317,41 +344,49 @@ export async function getVisitorStats() {
     }),
 
     // Unique visitors today (by sessionId)
-    db.pageView.groupBy({
-      by: ["sessionId"],
-      where: {
-        createdAt: { gte: today },
-        sessionId: { not: null },
-      },
-    }).then(r => r.length),
+    db.pageView
+      .groupBy({
+        by: ["sessionId"],
+        where: {
+          createdAt: { gte: today },
+          sessionId: { not: null },
+        },
+      })
+      .then((r) => r.length),
 
     // Unique visitors last 24 hours
-    db.pageView.groupBy({
-      by: ["sessionId"],
-      where: {
-        createdAt: { gte: last24Hours },
-        sessionId: { not: null },
-      },
-    }).then(r => r.length),
+    db.pageView
+      .groupBy({
+        by: ["sessionId"],
+        where: {
+          createdAt: { gte: last24Hours },
+          sessionId: { not: null },
+        },
+      })
+      .then((r) => r.length),
 
     // Unique visitors last 7 days
-    db.pageView.groupBy({
-      by: ["sessionId"],
-      where: {
-        createdAt: { gte: last7Days },
-        sessionId: { not: null },
-      },
-    }).then(r => r.length),
+    db.pageView
+      .groupBy({
+        by: ["sessionId"],
+        where: {
+          createdAt: { gte: last7Days },
+          sessionId: { not: null },
+        },
+      })
+      .then((r) => r.length),
 
     // Unique visitors last 30 days
-    db.pageView.groupBy({
-      by: ["sessionId"],
-      where: {
-        createdAt: { gte: last30Days },
-        sessionId: { not: null },
-      },
-    }).then(r => r.length),
-  ])
+    db.pageView
+      .groupBy({
+        by: ["sessionId"],
+        where: {
+          createdAt: { gte: last30Days },
+          sessionId: { not: null },
+        },
+      })
+      .then((r) => r.length),
+  ]);
 
   return {
     totalPageViews,
@@ -367,49 +402,44 @@ export async function getVisitorStats() {
       last7Days: uniqueVisitors7d,
       last30Days: uniqueVisitors30d,
     },
-  }
+  };
 }
 
 export async function getActiveUsers() {
-  const now = new Date()
-  const last15Minutes = subHours(now, 0.25) // 15 minutes
-  const last1Hour = subHours(now, 1)
-  const last24Hours = subHours(now, 24)
-  const last7Days = subDays(now, 7)
-  const last30Days = subDays(now, 30)
+  const now = new Date();
+  const last15Minutes = subHours(now, 0.25); // 15 minutes
+  const last1Hour = subHours(now, 1);
+  const last24Hours = subHours(now, 24);
+  const last7Days = subDays(now, 7);
+  const last30Days = subDays(now, 30);
 
-  const [
-    activeNow,
-    active1Hour,
-    active24Hours,
-    active7Days,
-    active30Days,
-  ] = await Promise.all([
-    // Users active in last 15 minutes
-    db.user.count({
-      where: { lastActiveAt: { gte: last15Minutes } },
-    }),
+  const [activeNow, active1Hour, active24Hours, active7Days, active30Days] =
+    await Promise.all([
+      // Users active in last 15 minutes
+      db.user.count({
+        where: { lastActiveAt: { gte: last15Minutes } },
+      }),
 
-    // Users active in last hour
-    db.user.count({
-      where: { lastActiveAt: { gte: last1Hour } },
-    }),
+      // Users active in last hour
+      db.user.count({
+        where: { lastActiveAt: { gte: last1Hour } },
+      }),
 
-    // Users active in last 24 hours
-    db.user.count({
-      where: { lastActiveAt: { gte: last24Hours } },
-    }),
+      // Users active in last 24 hours
+      db.user.count({
+        where: { lastActiveAt: { gte: last24Hours } },
+      }),
 
-    // Users active in last 7 days
-    db.user.count({
-      where: { lastActiveAt: { gte: last7Days } },
-    }),
+      // Users active in last 7 days
+      db.user.count({
+        where: { lastActiveAt: { gte: last7Days } },
+      }),
 
-    // Users active in last 30 days
-    db.user.count({
-      where: { lastActiveAt: { gte: last30Days } },
-    }),
-  ])
+      // Users active in last 30 days
+      db.user.count({
+        where: { lastActiveAt: { gte: last30Days } },
+      }),
+    ]);
 
   return {
     activeNow,
@@ -417,18 +447,18 @@ export async function getActiveUsers() {
     active24Hours,
     active7Days,
     active30Days,
-  }
+  };
 }
 
 export async function getPageViewTrends() {
-  const days = 14
-  const data = []
+  const days = 14;
+  const data = [];
 
   for (let i = days - 1; i >= 0; i--) {
-    const date = subDays(new Date(), i)
-    const dayStart = startOfDay(date)
-    const dayEnd = new Date(dayStart)
-    dayEnd.setHours(23, 59, 59, 999)
+    const date = subDays(new Date(), i);
+    const dayStart = startOfDay(date);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setHours(23, 59, 59, 999);
 
     const [pageViews, uniqueVisitors] = await Promise.all([
       db.pageView.count({
@@ -436,27 +466,29 @@ export async function getPageViewTrends() {
           createdAt: { gte: dayStart, lte: dayEnd },
         },
       }),
-      db.pageView.groupBy({
-        by: ["sessionId"],
-        where: {
-          createdAt: { gte: dayStart, lte: dayEnd },
-          sessionId: { not: null },
-        },
-      }).then(r => r.length),
-    ])
+      db.pageView
+        .groupBy({
+          by: ["sessionId"],
+          where: {
+            createdAt: { gte: dayStart, lte: dayEnd },
+            sessionId: { not: null },
+          },
+        })
+        .then((r) => r.length),
+    ]);
 
     data.push({
       date: format(date, "MMM d"),
       pageViews,
       uniqueVisitors,
-    })
+    });
   }
 
-  return data
+  return data;
 }
 
 export async function getTopPages(limit = 10) {
-  const last30Days = subDays(new Date(), 30)
+  const last30Days = subDays(new Date(), 30);
 
   const pageViews = await db.pageView.groupBy({
     by: ["path"],
@@ -472,10 +504,10 @@ export async function getTopPages(limit = 10) {
       },
     },
     take: limit,
-  })
+  });
 
   return pageViews.map((pv) => ({
     path: pv.path,
     views: pv._count.path,
-  }))
+  }));
 }

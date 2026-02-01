@@ -60,3 +60,6 @@ next-env.d.ts
 *.db
 *.db-journal
 *.sqlite
+
+
+
