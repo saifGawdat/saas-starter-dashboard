@@ -40,4 +40,22 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# prisma
 /src/generated/prisma
+
+# uploads and backups
+/uploads
+/backups
+
+# IDE
+.idea
+.vscode
+
+# logs
+/logs
+*.log
+
+# local database
+*.db
+*.db-journal
+*.sqlite
