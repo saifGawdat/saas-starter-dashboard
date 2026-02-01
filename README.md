@@ -58,11 +58,15 @@ cd dashboard-starter
 # Install dependencies
 npm install
 
-# Copy environment file
-cp .env.example .env
+# Set environment file
+# Database
+DATABASE_URL="mysql://root:password123@localhost:3306/db_name"
+# NextAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="secret-key"
+# Site URL
+NEXT_PUBLIC_SITE_URL="http://localhost:3000"
 
-# Configure your database URL in .env
-# DATABASE_URL="mysql://user:password@localhost:3306/dashboard"
 
 # Run database migrations
 npx prisma migrate dev
